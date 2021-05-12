@@ -1,0 +1,98 @@
+package Analizador;
+
+import java_cup.runtime.*;
+
+parser code {:
+		public String textError="";
+		public boolean isError=false;
+	public static void main(String args[]) throws Exception{
+		
+		new parser(new Yylex(System.in)).parse();
+	}
+	
+	 public void syntax_error(Symbol s){ 
+        System.out.println("Error Sintáctico en la Línea " + (s.left) +
+        " Columna "+s.right+ ". No se esperaba este componente: " +s.value+"."); 
+		isError=true;
+		textError="Error Sintáctico en la Línea " + (s.left) +
+        " Columna "+s.right+ ". No se esperaba este componente: " +s.value+".";
+    } 
+
+    /**
+     * Método al que se llama automáticamente ante algún error sintáctico 
+     * en el que ya no es posible una recuperación de errores.
+     **/ 
+    public void unrecovered_syntax_error(Symbol s) { 
+        System.out.print(""); 
+    }  
+	
+:}
+
+terminal LLA,LLC,MAS,MENOS,MULTIPLICACION,DIVISION,MOD,MENOR,MAYOR,MENORIGUAL,MAYORIGUAL,IGUAL,CA,CC;
+terminal AND,OR,NOT,EQ,NE,IN,NI,SET,PUTS,EXPR,IF,ELSE;	       
+terminal SWITCH,DEFAULT,WHILE,CONTINUE,BREAK,FOR,INCR,PROC,RETURN;	       
+terminal ASIG,AGRUPACION,COMENTARIO,DIGITO,DIGITODECIMAL,IDENTIFICADOR,ERROR;
+
+non terminal ini,expr_list,  expr;
+non terminal DECLARACION, VALOR ,ACCEDERVALOR, AGRUPACIONES, OPERACION, OPERANDO, TEST, OPERRELACIONAL;
+non terminal INSTRIF,INSTSWITCH,INSTRCASE,CASE ,INSTRWHILE,INSTRFOR, INSTRPROC, ARGUMENTOS;
+non terminal EXPRWHILE , DETWHILE ,OPERADOR ,OPERLOGICO,exprEspeciales,OPERMATEMATICO;
+
+start with ini;
+ini ::= expr_list;
+
+expr_list ::= 	expr expr_list 				| expr |
+				exprEspeciales expr_list 	| exprEspeciales ;
+
+
+expr      ::= 	DECLARACION	|	ACCEDERVALOR	|	AGRUPACIONES	|
+				INSTRPROC	|	IDENTIFICADOR	| 	INSTRIF			| 	
+				INSTRWHILE	|	INSTRFOR 		|	INSTSWITCH;
+
+exprEspeciales ::= 	ERROR		|	COMENTARIO;
+			
+DECLARACION ::= SET IDENTIFICADOR VALOR		|		SET IDENTIFICADOR DIGITODECIMAL;
+
+VALOR ::= ASIG IDENTIFICADOR | DIGITO | IDENTIFICADOR;
+
+ACCEDERVALOR ::= PUTS ASIG IDENTIFICADOR;
+ 
+AGRUPACIONES ::= SET IDENTIFICADOR AGRUPACION	|
+				 PUTS AGRUPACION	|
+				 PUTS LLA expr_list LLC |
+				 SET IDENTIFICADOR CA EXPR OPERACION CC ;
+				 
+				 
+OPERACION ::= 	OPERANDO OPERMATEMATICO OPERANDO;
+				
+OPERANDO ::= ASIG IDENTIFICADOR | DIGITO ;
+
+OPERADOR::= OPERRELACIONAL | OPERLOGICO;
+
+OPERMATEMATICO ::= MAS	|	MENOS	| MULTIPLICACION	|	DIVISION	|	MOD;
+
+OPERRELACIONAL ::=  IGUAL 	|	MENOR	|	MAYORIGUAL	|	MAYOR	|	MENORIGUAL	|	EQ	|	NE	|	IN	|	NI;
+
+OPERLOGICO ::= NOT	|	AND		| OR;
+
+TEST ::= OPERANDO OPERADOR OPERANDO;
+
+INSTRIF ::= IF LLA TEST LLC LLA expr_list LLC | IF LLA TEST LLC LLA expr_list LLC ELSE LLA expr_list LLC;
+
+INSTSWITCH ::= SWITCH IDENTIFICADOR LLA INSTRCASE DEFAULT LLA expr_list LLC LLC;	
+
+CASE ::=	AGRUPACION	LLA expr_list LLC;
+
+INSTRCASE ::= CASE | CASE INSTRCASE;
+
+INSTRWHILE ::= WHILE LLA TEST LLC LLA DETWHILE LLC;
+
+EXPRWHILE ::= expr | expr CONTINUE | expr BREAK	;
+
+DETWHILE ::= EXPRWHILE DETWHILE | EXPRWHILE ;
+
+INSTRFOR ::= FOR LLA DECLARACION LLC LLA TEST LLC LLA INCR IDENTIFICADOR LLC LLA expr_list LLC ;
+
+INSTRPROC ::= PROC IDENTIFICADOR LLA ARGUMENTOS LLC LLA expr_list RETURN VALOR LLC ;
+
+ARGUMENTOS ::= IDENTIFICADOR | IDENTIFICADOR ARGUMENTOS;

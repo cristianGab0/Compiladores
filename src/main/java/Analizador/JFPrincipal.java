@@ -3,13 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package Lexico;
+package Analizador;
 
 import java.awt.Color;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java_cup.runtime.Symbol;
 import javax.swing.JFileChooser;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
@@ -108,7 +109,9 @@ public class JFPrincipal extends javax.swing.JFrame {
         try {
             String texto = "";
             String textoErrores = "";
+            String textoErroreSintacticos = "";
             int contadorErrores = 0;
+            int contadorErroresSintacticos = 0;
 
             JFileChooser file = new JFileChooser();
             file.showOpenDialog(file);
@@ -116,35 +119,49 @@ public class JFPrincipal extends javax.swing.JFrame {
 
             if (archivo != null) {
                 FileReader archivos = new FileReader(archivo);
+                FileReader archivoCopia = new FileReader(archivo);
+
                 Yylex yy = new Yylex(archivos);
-                Yytoken t;
+
                 JTextPane.setText("");
-                while ((t = yy.yylex()) != null) {
-                    if (t.m_index != 41 && t.m_index != 44) {//valida que no sean comentarios y que no sean errrores
+                Symbol simbolos;
+
+                while ((simbolos = yy.next_token()) != null) {
+                    Yytoken ytoken = (Yytoken) simbolos.value;
+
+                    if (simbolos.sym != 39 && simbolos.sym != 43) {//valida que no sean comentarios y que no sean errrores
                         texto += "<tr style=\"text-align: center;\"><td >" + ""
-                                + "#" + t.m_index + "</td>"
-                                + "<td>" + t.m_text + "</td>"
-                                + "<td>" + t.m_patron + "</td>"
-                                + "<td>" + t.m_descripcion + "</td></tr>";
+                                + "#" + simbolos.sym + "</td>"
+                                + "<td>" + ytoken.m_text + "</td>"
+                                + "<td>" + ytoken.m_patron + "</td>"
+                                + "<td>" + ytoken.m_token + "</td></tr>";
                     }
-                    if (t.m_index == 44) {//valida que sean errores
+                    if (simbolos.sym == 43) {//valida que sean errores
                         contadorErrores++;
                         textoErrores += "<tr style=\"text-align: center;\">"
-                                + "<td style=\"font-size: 20px;\">" + t.m_descripcion + " el simbolo " + "<span style=\"color: red;\">" + t.m_text + "</span>" + " no es válido\tlinea:" + +t.m_line + " \tColumna:" + t.m_charBegin + "</td>"
+                                + "<td style=\"font-size: 12px;\">Error el simbolo " + "<span style=\"color: red;\">" + ytoken.m_text + "</span>" + " no es válido\tlinea:" + (simbolos.left + 1) + " \tColumna:" + simbolos.right + "</td>"
                                 + "</tr>";
 
                     }
-
                 }
-                if (contadorErrores == 0) {
+                parser parser = new parser(new Yylex(archivoCopia));
+                try {
+                    parser.parse();
+                } catch (Exception ex) {
+                }
+                if (parser.isError) {
+                    contadorErroresSintacticos++;
+                    textoErroreSintacticos = parser.textError;
+                }
+                if (contadorErrores == 0 && contadorErroresSintacticos == 0) {
                     JTextPane.setContentType("text/html");
                     JTextPane.setText("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>"
                             + "<center><table border=\"1\" >"
                             + "<tr style=\"text-align: center;\"><th>Token</th><th>Lexema</th><th>Patron</th><th>Valor</th></tr>"
                             + texto
-                            + "</table><span style=\"font-size: 2em;\">Resultado: Todos los simbolos insertados son correctos</span></center></body></html>"
+                            + "</table><span style=\"font-size: 2em;\">Resultado: Analisis Lexico y Sintactico realizado con exito.</span></center></body></html>"
                     );
-                } else if (contadorErrores > 0) {
+                } else if (contadorErrores > 0 && contadorErroresSintacticos == 0) {
                     JTextPane.setContentType("text/html");
                     if (contadorErrores == 1) {
                         JTextPane.setText("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>"
@@ -159,6 +176,38 @@ public class JFPrincipal extends javax.swing.JFrame {
                                 + "</table><span style=\"font-size: 2em; color: red;\">Resultado: Se han encontrado la cantidad de " + contadorErrores + " simbolos no permitidos.</span></center></body></html>"
                         );
                     }
+                } else if (contadorErrores == 0 && contadorErroresSintacticos > 0) {
+                    JTextPane.setContentType("text/html");
+
+                    JTextPane.setText("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>"
+                            + "<center>"
+                            + "<table>"
+                            + "<tr style=\"text-align: center;\">"
+                            + "<td style=\"font-size: 12px;\">" + textoErroreSintacticos + "</td>"
+                            + "</tr></table>"
+                            + "<p style=\"font-size: 12px; color: red;\">Resultado: ERROR SINTACTICO.</p></center></body></html>"
+                    );
+
+                } else if (contadorErrores > 0 && contadorErroresSintacticos > 0) {
+                    JTextPane.setContentType("text/html");
+                    if (contadorErrores == 1) {
+                        JTextPane.setText("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>"
+                                + "<center><table>"
+                                + textoErrores
+                                + "</table><span style=\"font-size: 12px; color: red;\">Resultado: Se han encontrado la cantidad de " + contadorErrores + " simbolo no permitido.</span><br>"
+                                + "<span style=\"text-align: center; font-size: 12px;\">" + textoErroreSintacticos + "</span>"
+                                + "</center></body></html>"
+                        );
+                    } else if (contadorErrores > 1) {
+                        JTextPane.setText("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>"
+                                + "<center><table>"
+                                + textoErrores
+                                + "</table>"
+                                + "<span style=\"font-size: 12px; color: red;\">Resultado: Se han encontrado la cantidad de " + contadorErrores + " simbolos no permitidos.</span><br>"
+                                + "<span style=\" font-size: 12px;\">" + textoErroreSintacticos + "</span>"
+                                + "</center></body></html>"
+                        );
+                    }
                 }
 
             }
@@ -166,6 +215,7 @@ public class JFPrincipal extends javax.swing.JFrame {
             e.printStackTrace(System.out);
         }
     }//GEN-LAST:event_jButton1ActionPerformed
+
     public void appendToPane(JTextPane tp, String msg, Color c) {
         StyleContext sc = StyleContext.getDefaultStyleContext();
         AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
