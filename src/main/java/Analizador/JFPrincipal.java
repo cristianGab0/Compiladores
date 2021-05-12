@@ -202,7 +202,7 @@ public class JFPrincipal extends javax.swing.JFrame {
                         JTextPane.setText("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>"
                                 + "<center><table>"
                                 + textoErrores
-                                + "</table>"
+                                + "</table> "
                                 + "<span style=\"font-size: 12px; color: red;\">Resultado: Se han encontrado la cantidad de " + contadorErrores + " simbolos no permitidos.</span><br>"
                                 + "<span style=\" font-size: 12px;\">" + textoErroreSintacticos + "</span>"
                                 + "</center></body></html>"
